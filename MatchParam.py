@@ -178,7 +178,7 @@ class MatchParam(object):
             else:
                 self.parameters[key] = value
         else:
-            raise KeyError("Key not found:", key))
+            raise KeyError("Key not found:", key)
         
         return None
 
