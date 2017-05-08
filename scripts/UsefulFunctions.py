@@ -163,7 +163,7 @@ class SFH(object):
         self._file = SFH
         self._zcmerge = zcmerge  # Tells program if zcmerge/zcombine was used; default is zcombine
         self._SFR = SFR  # Tells program which quantity to plot on y-axis.  Default is SFR
-        self._bins = bins
+        self._bins = int(bins)
         self._label = label
         self._cumulative = cumulative # allows the user to specify they want cumulative SF calculated for their SFH
 

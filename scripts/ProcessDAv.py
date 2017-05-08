@@ -32,12 +32,14 @@ It will also plot the change in fit with dAv and Av as well as make cumulative s
 class ProcessDAv(object):
 
     def __init__(self, path, baseName, photFile, paramFile, bins=22):
+        bins = int(bins)
         self.processDAv_general(path, baseName, photFile, paramFile, bins=bins)
         
     def processDAv_general(self, path, baseName, photFile, paramFile, bins):
         """
         Takes in a path with a baseName that will follow standard dAv naming conventions.
         """
+        print("BINS:", bins)
         dAvfile = open(path+"best_dAvs.ls", 'a')
         massFile = open(path+"best_mass.ls", 'a')
         metallicity = "z_0-19" # Defines the metallicity to use for plotting isochrones
@@ -49,6 +51,8 @@ class ProcessDAv(object):
         files = np.asarray([file for file in files if "." not in file]) # get rid of extraneous files ending with a suffix
         #print(files)
 
+        print("FILES:", files)
+        
         # order files in increasing dAv
         dAvs = np.asarray([float(file.split("/")[-1].split("_")[-1].replace("-", ".")) for file in files])
         #print(dAvs)
