@@ -268,6 +268,9 @@ def singleRun(args):
 
 def parse(args):
     """
+    Note: If you run MatchRunner.py and you get "Uknown flag..." but it is a real MATCH flag then this should be
+    editted to include that flag.  Just type the same code as the majority of these flags.
+
     This will parse the remaining arguements like -dAv=X.X and returns a list to be added to the final
     MATCH command.
     """
@@ -305,6 +308,11 @@ def parse(args):
             idx.append(i)
 
         if "-zinc" in arg:
+            flags.append(arg)
+            idx.append(i)
+
+        # Custom to MatchRunner.py
+        if "-skip" in arg:
             flags.append(arg)
             idx.append(i)
             
