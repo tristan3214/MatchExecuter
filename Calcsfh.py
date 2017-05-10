@@ -148,7 +148,7 @@ class DefaultCalcsfh(ProcessRunner):
 
         self._getDAv()
         self._checkGroup()
-        self._checkForSkip()
+        self._checkForFlags()
 
     def condorCommands(self):
         """
