@@ -29,7 +29,7 @@ Usage (For more advanced usage like changing exclude gates see UsingMatchParam.p
 >>> param = MatchParam("/path/to/your/param.param")
 >>> param.change("dAv", 0.1)
 >>> param.save(name="new_param.param") # saves in CWD
->>> param.save(path="/to/save/directory", name="new_param.param")
+>>> param.save(path="/to/save/directory", name="new_param.param") # Saves in desired directory
 
 # To retrieve a basic key's value like the minimum distance modulus value.
 >>> param = MatchParam("/path/to/your/param.param")
@@ -45,9 +45,8 @@ Usage (For more advanced usage like changing exclude gates see UsingMatchParam.p
 
 Keys (Use the printKeys function in MatchParam to see the object's instance of keys)
 ----
-
 m-Mmin m-Mmax d(m-M) Avmin Avmax dAv
-logZmin logZmax dlogZ
+logZmin logZmax dlogZ [initMin initMax presMin presMax]
 BF Bad0 Bad1
 Ncmds
 Vstep V-Istep fake_sm V-Imin V-Imax V,I  (per CMD)
@@ -69,7 +68,7 @@ when Ncmds > 1 Vstep, V-Istep, fake_sm, V-Imin, V-Imax have the CMD num appended
 
 Vmin Vmax V
 Imin Imax I
-The min and max always have the filter name prefixed (eg UVIS438Wmin and UVIS438max)
+The min and max keys always have the filter name prefixed (eg UVIS438Wmin and UVIS438max)
 """
 
 class MatchParam(object):

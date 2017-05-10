@@ -13,9 +13,23 @@ from UserParameters import *
 
 __author__ = "Tristan J. Hillis"
 
-###
-# Useful functions
-###
+"""
+Synopsis
+--------
+This is where all the pieces to run a fit are built.  That does not mean this is where things are run.  It is rather where one can change the core
+attributes of how post-processing is done.  If you want to change what gets passed into a script to be run in the shell you do it here.  Or maybe
+if you want to bake in a long running MATCH command that I haven't yet (eg calcsfh) this is the place to do it.
+
+Classes - This will be a basic run down of how these classes interact.
+-------
+MatchThread : This is where any of the classes are run.  Classes are threaded to run the fits in bash while not blocking.  However,
+              there are attributes needed in the thread
+"""
+
+
+####################
+# Useful functions #
+####################
 def findStringInList(s_list, s):
     """
     Takes in a list of strings and returns the index of the found string.
@@ -24,6 +38,8 @@ def findStringInList(s_list, s):
         if s in string:
             return i
     return None
+####################
+
 
 class MatchThread(threading.Thread):
     """
