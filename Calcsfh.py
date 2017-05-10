@@ -23,8 +23,22 @@ def findStringInList(s_list, s):
     for i, string in enumerate(s_list):
         if s in string:
             return i
-
     return None
+
+class MatchThread(threading.Thread):
+    """
+    This acts like a regular Thread object and is called the same only there are custom class variables.
+    """
+    def __init__(self, line, target=None, args=(), name=None):
+        """
+        Initializes Thread the same way just with an additive class variable.
+        Takes in a single string line that will be parsed by the target method
+        """
+        threading.Thread.__init__(self, target=target, args=args, name=name)
+        self.cancel = False # This gets set to True if the bash command is to be canceled
+        self.command = line # Saves the command sent to this thread
+        self.name = name
+
 
 class ProcessRunner(object):
     """
@@ -61,7 +75,7 @@ class ProcessRunner(object):
 
     def _cleanup(self):
         """
-        Clean up after
+        Clean up after.  To be filled in when this class is inherited.  Otherwise nothing happens.
         """
         pass
 
@@ -73,9 +87,6 @@ class DefaultCalcsfh(ProcessRunner):
     the default zcombine command to run here is "zcombine -bestonly fit_name > fit_name.zc".  A user can inherit this class and manually
     change this command to something more complicated.  There is also a script the user can specfiy that will run at the very end.  An example
     of such a script could be plotting the SFH after the fit completes.
-
-    TO DO: Include some sort of clustering of objects.  This would make it so one can start, for example, different -dAv runs and becuase of
-    the "clustering" a script can be envoked for all of these objects.
     """
     
     def __init__(self, command):
@@ -90,8 +101,9 @@ class DefaultCalcsfh(ProcessRunner):
 
         self.zcombine_name = None # initialize
         self.co_file = None # initialize
+        self.skip = False
+        self.isHybrid = False
         
-        ### parse the command of the attributes
         command = command.split()
         # Add in the MATCH install
         command[0] = MATCH_EXECUTABLE_BIN + command[0]
@@ -136,32 +148,7 @@ class DefaultCalcsfh(ProcessRunner):
 
         self._getDAv()
         self._checkGroup()
-        #print("GOING TO RUN THIS COMMAND:", self.curr_command) 
-        # keep a boolean in the command needs to be canceled.  The thread running this will have, in tandem, a cancel key also.
-        #self.cancel = False #
-
-        # DEPRECATED: ServerMatch will run this command.
-        #self.run() # run the current command which will be the initially passed in calcsfh command
-
-    def zcombine(self):
-        """
-        This is where the user can specify the current command for zcombine.  User should overwrite this in inheritance if they need
-        to employ something more complex than the default zcombine command
-        """
-        # set the current command
-        self.curr_command = "%szcombine -bestonly %s > %s.zc" % (MATCH_EXECUTABLE_BIN, self.cwd + self.fit, self.cwd + self.fit)
-        # set a file name for the new zcombine name
-        self.zcombine_name = self.fit + ".zc"
-        print(self.zcombine_name)
-
-    def processFit(self):
-        files = [self.cwd+self.parameter, self.cwd+self.phot, self.cwd+self.fake, self.cwd+self.fit,
-                 self.cwd+self.co_file, self.cwd+self.zcombine_name, self.cwd+self.cmd_file]
-        self.curr_command = "%s/scripts/calcsfh_script.sh %s %s %s %s %s %s %s" % \
-                            (MATCH_SERVER_DIR, files[0], files[1], files[2], files[3], files[4], files[5], files[6])
-        # Uncomment this line below when using hybridMC
-        #self.curr_command = "%s/scripts/hybridMC_script.sh %s %s %s %s %s %s %s %s" % \
-        #                    (MATCH_SERVER_DIR, files[0], files[1], files[2], files[3], files[4], files[5], files[6], self.cwd+self.mcdata)
+        self._checkForSkip()
 
     def condorCommands(self):
         """
@@ -176,6 +163,61 @@ class DefaultCalcsfh(ProcessRunner):
             forCondor.append("group %s %s" % (self._group, self.original))
         return forCondor
 
+    def processFit(self):
+        files = [self.cwd+self.parameter, self.cwd+self.phot, self.cwd+self.fake, self.cwd+self.fit,
+                 self.cwd+self.co_file, self.cwd+self.zcombine_name, self.cwd+self.cmd_file]
+        if not self.isHybrid: # no -mcdata flag
+            self.curr_command = "%s/scripts/calcsfh_script.sh %s %s %s %s %s %s %s" % \
+                                (MATCH_SERVER_DIR, files[0], files[1], files[2], files[3], files[4], files[5], files[6])
+        else: # with -mcdata flag
+            self.curr_command = "%s/scripts/hybridMC_script.sh %s %s %s %s %s %s %s %s" % \
+                                (MATCH_SERVER_DIR, files[0], files[1], files[2], files[3], files[4], files[5], files[6], self.cwd+self.mcdata)
+
+    def zcombine(self):
+        """
+        This is where the user can specify the current command for zcombine.  User should overwrite this in inheritance if they need
+        to employ something more complex than the default zcombine command
+        """
+        # set the current command
+        self.curr_command = "%szcombine -bestonly %s > %s.zc" % (MATCH_EXECUTABLE_BIN, self.cwd + self.fit, self.cwd + self.fit)
+        # set a file name for the new zcombine name
+        self.zcombine_name = self.fit + ".zc"
+        print(self.zcombine_name)
+
+    def _checkForFlags(self):
+        """
+        This will check for the custom flag -skip.  "-skip" is used to skip the main fit, ie the first command, and go straight to the 
+        zcombine and post-processing scripts.
+
+        This will also check if the -mcdata flag is being used and will change the post-processing accordingly.  Se the processFit method.
+        """
+        if "-skip" in self.curr_command:
+            self.skip = True
+
+        if "-mcdata" in self.curr_command:
+            self.isHybrid = True
+
+    def _cleanup(self):
+        """
+        This is canceled when the process is canceled abruptly, in which the files corresponding to this run
+        of calcsfh will be erased.
+        """
+        files = [self.cwd+self.fit, self.cwd+self.co_file, (self.cwd+self.zcombine_name if self.zcombine_name is not None else None),
+                 (self.cwd+self.cmd_file if self.cmd_file is not None else None)]
+        for file in files:
+            if self._checkFile(file):
+                os.remove(file)
+        
+    def _checkFile(self, file):
+        """
+        This is used by cleanup to check the exisentce of a file
+        """
+        if file is not None and os.path.isfile(file):
+            return True
+        else:
+            return False
+
+            
     def _checkGroup(self):
         """
         This will check the flags for a group name and assign it a variable
@@ -208,26 +250,7 @@ class DefaultCalcsfh(ProcessRunner):
             print(self.dAv)
         except IndexError:
             pass
-            
-    def _cleanup(self):
-        """
-        This is canceled when the process is canceled abruptly, in which the files corresponding to this run
-        of calcsfh will be erased.
-        """
-        files = [self.cwd+self.fit, self.cwd+self.co_file, (self.cwd+self.zcombine_name if self.zcombine_name is not None else None),
-                 (self.cwd+self.cmd_file if self.cmd_file is not None else None)]
-        for file in files:
-            if self._checkFile(file):
-                os.remove(file)
-        
-    def _checkFile(self, file):
-        """
-        This is used by cleanup to check the exisentce of a file
-        """
-        if file is not None and os.path.isfile(file):
-            return True
-        else:
-            return False
+
 
 class GroupProcess(ProcessRunner):
     """
@@ -297,19 +320,10 @@ class SSPCalcsfh(DefaultCalcsfh):
         for file in files:
             if self._checkFile(file):
                 os.remove(file)
-                
-"""
-class extendProcessRunner(ProcessRunner):
-    def __init__(self, command):
-        super(extendProcessRunner, self).__init__(command)
-
-    def printCommand(self):
-        print(self.curr_command)
-"""
-        
+                        
 class Sleep(ProcessRunner):
     """
-    Object for testing the process of these objects
+    This is a test object.
     """
     def __init__(self, stime):
         """
@@ -325,7 +339,6 @@ class Sleep(ProcessRunner):
         print("Cleaning up after sleep")
 
         
-
 def main():
     """
     This is only used for testing purposes

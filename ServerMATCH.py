@@ -22,6 +22,7 @@ from UserParameters import *
 import MyLogger
 from Calcsfh import DefaultCalcsfh
 from Calcsfh import GroupProcess
+from Calcsfh import MatchThread
 from Calcsfh import Sleep
 from Calcsfh import SSPCalcsfh
 
@@ -180,25 +181,19 @@ class CommandParser(object):
                         dAv = arg
 
                 dAv = dAv.split("=")[1].split(",")
-
                 lower = float(dAv[0])
                 upper = float(dAv[1])
                 step = float(dAv[2])
+
                 log.info("generating dAv commands in the specified range with step - " + line)
+                
                 t = MatchThread(line, target=self.commands.dAvRange, args=(line, lower, upper, step), name="dAv_%d"%getdAvName())
                 dAvRangeThreads[t.name] = t
                 t.start()
 
             else:
                 log.info("run calcsfh command - " + line)
-                startCommand(line, self.commands.calcsfh2, (line,), name=getThreadNumber())
-                """
-                t = MatchThread(line, target=self.commands.calcsfh2, args=(line,), name=getThreadNumber())
-                activeThreads[t.name] = t
-                t.start()
-                """
-            return None
-        if input[0] == "ssp":
+                startCommand(line, self.commands.calcsfh, (line,), name=getThreadNumber())
             return None
         
         if input[0] == "group":
@@ -218,10 +213,10 @@ class CommandParser(object):
                 self.commands.cancel(line)
                 log.info("canceling command - " + line)
             return None
+
         if input[0] == "show":
             line = self.commands.show(input)
             return line
-
 
         # sleep for testing object based MatchExecuter
         if input[0] == "sleep":
@@ -254,12 +249,13 @@ class CommandMethods(object):
     def __init__(self):
         pass
 
-    def calcsfh2(self, line):
+    def calcsfh(self, line):
         if "-ssp" not in line:
             calcsfh = DefaultCalcsfh(line)
-            # run the initial command
-            calcsfh.run()
-
+            if not calcsfh.skip:
+                # run the initial command
+                calcsfh.run()
+                
             # run zcombine at the end
             calcsfh.zcombine()
             calcsfh.run()
@@ -267,10 +263,12 @@ class CommandMethods(object):
             # process calcsfh files after
             calcsfh.processFit()
             calcsfh.run()
+            
         else: # SSP run
             calcsfh = SSPCalcsfh(line)
-            # Run the initial command
-            calcsfh.run()
+            if not calcsfh.skip:
+                # Run the initial command
+                calcsfh.run()
 
             # run sspcombine
             calcsfh.sspcombine()
@@ -287,84 +285,6 @@ class CommandMethods(object):
             
         # cleanup the thread that is done
         cleanupThread(doneThreads)
-
-    
-    def calcsfh(self, line):
-        """
-        This runs caclsfh commands of all types.  Users should make sure to specify paths to their files in
-        the arguments.
-        """
-        t = threading.current_thread()
-        
-        pipe = subprocess.Popen(line, shell=True, preexec_fn=os.setsid)
-        
-        while pipe.poll() is None:
-            if t.cancel:
-                print("CANCELED", t.name)
-                os.killpg(os.getpgid(pipe.pid), signal.SIGTERM) # kills group of processes when present
-                break
-            time.sleep(0.5)
-
-        
-        if not t.cancel:
-            if "-ssp" in line:
-                # run sspcombine
-                outputFile = line.split()[-1]
-                fitName = outputFile.split("/")[-1].split(".")[0]
-                path = "/".join(outputFile.split("/")[:-1]) + "/"
-                print(outputFile)
-                print(path)
-                # get rid of the first bit so sspcombine will run properly
-                subprocess.call("tail -n +11 %s > %s.temp" % (outputFile, path + fitName), shell=True)
-                subprocess.call("mv %s.temp %s" % (path+fitName, outputFile), shell=True)
-                # make command
-                sspCommand = "sspcombine %s > %s.ssp" % (outputFile, path + fitName)
-                print(sspCommand)
-
-                pipe = subprocess.Popen(sspCommand, shell=True, preexec_fn=os.setsid)
-                while pipe.poll() is None:
-                    if t.cancel:
-                        os.killpg(os.getpgid(pipe.pid), signal.SIGTERM)
-                        break
-                    time.sleep(0.5)
-            else:
-                # run zcombine
-                outputFile = line.split()[-1]
-                fitName = outputFile.split("/")[-1].split(".")[0]
-                path = "/".join(outputFile.split("/")[:-1]) + "/"
-
-                # make command
-                zcCommand = "zcombine -bestonly %s > %s.zc" % (path + fitName, path + fitName)
-
-                pipe = subprocess.Popen(zcCommand, shell=True, preexec_fn=os.setsid)
-                while pipe.poll() is None:
-                    if t.cancel:
-                        os.killpg(os.getpgid(pipe.pid), signal.SIGTERM)
-                        break
-                    time.sleep(0.5)
-            
-        if not t.cancel:
-            log.info("Completed computation of command - " + line)
-            # get directory of where the files are being put
-            directory = line.split(" ")[1] # second arg points to parameter file in the local directly
-            paramFile = directory.split("/") # collect everything but parameter file name
-            directory = "/".join(paramFile[:-1]) + "/"
-            f = open(directory + "run_log.log", 'a')
-            stripLine = stripCalcsfh(line)
-            f.write("completed: %s\n" % stripLine)
-            param = open("/".join(paramFile), 'r')
-            lines = param.readlines()
-            f.writelines(lines)
-
-            f.write("\n\n")
-            f.close()
-            
-        t.cancel = True
-        print("ACTIVE THREADS:", activeThreads)
-        doneThreads.put(activeThreads.pop(t.name))
-        
-        watcherEvent.set()
-        watcherEvent.clear()
 
     def dAvRange(self, line, lower=0.0, upper=1.0, step=0.2):
         """
@@ -692,20 +612,6 @@ def emptyQueue(queue):
     size = queue.qsize()
     for i in xrange(size):
         queue.get()
-
-class MatchThread(threading.Thread):
-    """
-    This acts like a regular Thread object and is called the same only there are custom class variables.
-    """
-    def __init__(self, line, target=None, args=(), name=None):
-        """
-        Initializes Thread the same way just with an additive class variable.
-        Takes in a single string line that will be parsed by the target method
-        """
-        threading.Thread.__init__(self, target=target, args=args, name=name)
-        self.cancel = False # This gets set to True if the bash command is to be canceled
-        self.command = line # Saves the command sent to this thread
-        self.name = name
 
 
 class CondorWatcher(threading.Thread):
