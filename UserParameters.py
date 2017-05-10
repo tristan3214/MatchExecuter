@@ -10,8 +10,8 @@ import getpass
 import os
 
 ####
-#CORE_COUNT = multiprocessing.cpu_count() # How many threads will run commands (runningCommands = CORE_COUNT-1)
-CORE_COUNT = 8
+#CORE_COUNT = multiprocessing.cpu_count() # There are CORE_COUNT-1 threads running fits
+CORE_COUNT = 4
 MAX_CONDOR_SIZE = 3000 # This will be the max size of the queued jobs in condor
 CONDOR_ON = False # Changes this to False if you don't want to use condor
 #USER_ID = getpass.getuser() # This will keep track of the user id
@@ -22,3 +22,4 @@ MATCH_EXECUTABLE_BIN = "/astro/apps6/opt/match2.6/bin/" # Change this to the dis
 ####
 
 #MATCH_SERVER_DIR = "/home/tristan/BenResearch/executer" # This line is for testing purposes
+HOST_IP_ADDRESS = "10.155.88.135" # This line is for testing purposes.  Astrolab computer 18.
