@@ -273,6 +273,8 @@ class MatchParam(object):
         if name is None:
             # defualts to parameter file named parameters_XX.param and creates symbolic link
             name = self._iterateParameter()
+        if path[-1] != "/":
+            path += "/"
             
         self.savedTo = path + name
         self.name = name
