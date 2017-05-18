@@ -157,7 +157,7 @@ def singleRun(args):
         background = param.get("background")
         if background is not None and "default" in background:
             back = raw_input("Specify Background: ")
-            param.change("background=%s" % (workingD + back))
+            param.change("background", back)
         if param.get("scale") == "scale":
             scale = raw_input("Specify scale: ")
             try:
@@ -166,7 +166,7 @@ def singleRun(args):
                 print("Not a float try again...")
                 scale = raw_input("Specify scale: ")
                       
-            param.change("scale=%f" % float(scale))
+            param.change("scale=", float(scale))
         param.save()
         paramFile = param.name
         # make symbolic link here
@@ -187,12 +187,12 @@ def singleRun(args):
                                    % newFileName)
                 if answer in ['Y', 'y']:
                     # change the logZmin
-                    param.change("logZmin=-1.5")
+                    param.change("logZmin", -1.5)
                     param.save(name=newFileName)
                 else:
                     print("Zinc and ssp flags both specified...exiting")
                     sys.exit(1)
-            if param.calculateMaxOrMin: # Had to calculate filter mins or maxes and so we save over the file
+            if param._calculateMaxOrMin: # Had to calculate filter mins or maxes and so we save over the file
                 param.save(workingD, paramFile)
 
         else:
@@ -207,7 +207,7 @@ def singleRun(args):
                 print("BACKGROUND:", background)
                 if background is not None and "default" in background:
                     back = raw_input("Specify Background: ")
-                    param.change("background=%s" % (workingD + back))
+                    param.change("background", back)
                 if param.get("scale") == "scale":
                     scale = raw_input("Specify scale: ")
                     
@@ -217,7 +217,7 @@ def singleRun(args):
                         print("Not a float try again...")
                         scale = raw_input("Specify scale: ")
                       
-                    param.change("scale=%f" % float(scale))
+                    param.change("scale", float(scale))
 
                 param.save(name=paramFile)
             else:
