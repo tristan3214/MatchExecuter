@@ -1,4 +1,4 @@
-#!/astro/apps6/annaconda/bin/python2
+#!/astro/users/garofali/anaconda/bin/python2
 
 """
 This file contains all the user specific parameters that can be changed to customize the Server and other aspects
