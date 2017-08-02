@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 class Polygon():
 	"""
 	Make some polygon with edges and vertices.

@@ -1,4 +1,4 @@
-#!/astro/users/garofali/anaconda/bin/python2
+#!/usr/bin/env python
 from __future__ import print_function, division, absolute_import
 
 import numpy as np
