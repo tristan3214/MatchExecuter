@@ -46,7 +46,7 @@ def matchDensities(threshold, fakes, densities):
         min_factor = factor[idx]
 
         if min_factor <= threshold:
-            print(curr_id, fakes['id'][idx])
+            #print(curr_id, fakes['id'][idx])
             if str(curr_id) == str(fakes['id'][idx]):
                 count += 1
             matched.append(fakes['id'][idx])
@@ -55,9 +55,9 @@ def matchDensities(threshold, fakes, densities):
             run_count += 1
         else:
             matched.append(None)
-            print(i+1, curr_id, None)
+            #print(i+1, curr_id, None)
 
-    print("Number of snrs matched to a relative density:", run_count)
+    #print("Number of snrs matched to a relative density:", run_count)
     data = pd.DataFrame({"id":densities['id'].values, "match":matched})
     #print(data)
     #print(unique, len(unique))
@@ -81,24 +81,25 @@ def getDAv(path, fitName):
     else:
         idx = np.where(name == fitName)[0][-1]
         return (dAv[idx], Av[idx])
-def getMass(path, fitName):
+def getMass(path, fitNames, massname, skiprows=0):
     """
     Takes in a path to where a standard best_dAvs.ls file is held and uses the fitName to extract mass for the best fit.
     Returns these values as a tuple as (50th, 84th, 16th) else if the fitname is not found returns none. Returns are strings.
     """
-    name, mass, plus, minus = np.genfromtxt(path+"best_mass.ls", usecols=[0,1,2,3], unpack=True, dtype=str)
-    if name.size == 1:
-        name = np.array([name])
-        mass = np.array([mass])
-        plus = np.array([plus])
-        minus = np.array([minus])
-        
-    if fitName not in name:
-        return None
-    else:
-        idx = np.where(name == fitName)[0][-1]
-        return (mass[idx], plus[idx], minus[idx])
+    name, mass, plus, minus = np.genfromtxt(path+massname, usecols=[0,1,2,3], unpack=True, dtype=str, skip_header=skiprows)
+    for fitName in fitNames:
+        if name.size == 1:
+            name = np.array([name])
+            mass = np.array([mass])
+            plus = np.array([plus])
+            minus = np.array([minus])
 
+        if fitName not in name:
+            continue
+        else:
+            idx = np.where(name == fitName)[0][-1]
+            return (mass[idx], plus[idx], minus[idx])
+    return None
 
     
 def getShiftedSNRFK5(snr):
@@ -106,16 +107,13 @@ def getShiftedSNRFK5(snr):
     Pass in an snr id and then return the shifted RA and DEC coordinates using x_off and y_off in the master list.
     """
     # Read in master list
-    master = snr.read_csv("/home/tristan/BenResearch/M83/code/textFiles/master_list.txt")
+    master = pd.read_csv("/home/tristan/BenResearch/M83/code/textFiles/master_list.txt")
 
     # available fields
     fitsFiles = ["12513_MESSIER-083","12513_MESSIER-083-POS2","12513_M83-F3","12513_M83-F4","12513_M83-F5","12513_M83-F6","12513_M83-F7"] # fields [1, 2, 3, 4, 5, 6, 7]
 
     # get index of the passed in snr
-    idx = None
-    for i in xrange(master['id'].values.size):
-        idx = np.where(snr == master['id'][i])[0][0]
-
+    idx = np.where(snr == master['id'].values)[0][0]
     # get coordinates as well as x_off and y_off
     ra, dec, x_off, y_off, field = master['ra'][idx], master['dec'][idx], master['x_off'][idx], master['y_off'][idx], master['field'][idx]
 

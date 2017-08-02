@@ -897,6 +897,9 @@ class MatchParam(object):
         dif = abs(y1-y2)
         if dif > 0.5:
             raise ValueError("Interpolating between mags is different by > 0.5 check completeness.")
+
+        if dif == 0: # if there is a point right on 0.5 exactly
+            return mags[idx1]
         
         m = (y2 - y1) / (x2 - x1)
         b = (-m * x1 + y1)
