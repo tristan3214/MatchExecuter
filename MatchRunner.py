@@ -93,7 +93,7 @@ def listRun(run_list):
         command = "calcsfh %s %s %s %s" % (paramFile, photFile, fakeFile, fitName)
         for flag in flags:
             command += " %s" % flag
-        command += " > %s.co" % fitName
+        command += " &> %s.co" % fitName
         commands.append(command)
     return commands
     
@@ -253,7 +253,7 @@ def singleRun(args):
     log = MyLogger.myLogger("generate commands", toExecutable + "logs/generated_commands")
     # create stripped down command (ie no working directory included)
     stripCommand = "calcsfh " + paramFile + " " + photFile + " " + fakeFile + " " + fitName + " " + " ".join(flags) \
-                   + " > " + fitName + ".co"
+                   + " &> " + fitName + ".co"
     # create empty file so getFitName can iterated to another fit number
     #subprocess.call('touch %s' % (os.getcwd() + "/" + fitName), shell=True)
     f = open(workingD + fitName, "w")
