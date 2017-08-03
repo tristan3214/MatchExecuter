@@ -94,7 +94,8 @@ class MatchParam(object):
         useBackgroundMin : {boolean}, (optional) 
                            Set to True if you want the brightest mag to be calculated using a background given
                            in the parameter file.  Else the photometry file is used during this calculation. 
-                           See use cases above in the module docstring.
+                           See use cases above in the module docstring.  This will be recalculated on every save,
+                           which would assume you changed the background and still want this feature.
         ssp : {boolean}
               When passing in an ssp parameter file set this to True.
         
@@ -176,6 +177,10 @@ class MatchParam(object):
                 self.parameters[key] = valType(value)
             else:
                 self.parameters[key] = value
+
+                #if key == 'background' and self._useBackgroundMin:
+                #self.changeToBackgroundMin()
+                
         else:
             raise KeyError("Key not found:", key)
         
@@ -199,7 +204,7 @@ class MatchParam(object):
             return self.parameters[key]
         else:
             raise KeyError("Did not find key in object.parameters")
-
+        
     def printKeys(self):
         """Print instances keys.  Use this to visually see what keys you can use.  It prints out in the 
         style of the MATCH parameter file.
@@ -278,6 +283,10 @@ class MatchParam(object):
             
         self.savedTo = path + name
         self.name = name
+
+        if self._useBackgroundMin:
+            self._changeToBackgroundMin(path=path)
+
         f = open(path + name, 'w')
 
         # line one (IMF m-Mmin m-Mmax d(m-M) Avmin Avmax dAv)
@@ -420,6 +429,28 @@ class MatchParam(object):
                                       str(self.parameters['background'])))
             else:
                 print("%s %s %s" % (self.parameters["lLine_1"], self.parameters["lLine_2"], str(self.parameters["scale"])))
+
+
+    def _changeToBackgroundMin(self, path=None):
+        """Called automatically when saving and the user wants to use the background as the measurement of brightest stars but
+            has also been changing the background reference.
+
+        Parameters 
+        ----------
+        path : {string}
+               If you are using this manually use this to specify where the background.
+                         
+
+
+        Return
+        ------
+        None
+        """
+        maxes = self._calculateMaxes(self.parameters['Ncmds'], path=path)
+        for i, filter in enumerate(self.filterSet):
+            self.parameters[filter + "min"] = maxes[i]
+
+        pass
 
 
     def _parseDefault(self):
@@ -731,7 +762,7 @@ class MatchParam(object):
                 calculateMax.append(False)
             except ValueError:
                 calculateMax.append(True)
-        if True in calculateMax:
+        if True in calculateMax or self._useBackgroundMin is True:
             if self.phot is not None:
                 maxes = self._calculateMaxes(numCMDs)
                 for i, filter in enumerate(self.filterSet):
@@ -770,15 +801,18 @@ class MatchParam(object):
             #print(s.strip())
             return s.strip()
 
-    def _calculateMaxes(self, n):
+    def _calculateMaxes(self, n, path=None):
         """
         Calculates the brightest magnitude in the phot file, which is essentially the minium.  Passed in is the number of cmds.
         2 CMDs gives 3 filters and 1 CMD gives. If there is a detected background file then we use it to compute the brightest.
         """
         file_to_use = self.phot
         if self.parameters['background'] is not None and self._useBackgroundMin:
-            file_to_use = self.parameters['background']
-                
+            file_to_use = None
+            if path is not None:
+                file_to_use = path + self.parameters['background']
+            else:
+                file_to_use = self.parameters['background']
         if n == 1:
             lowest_cmd, higher_cmd = np.loadtxt(file_to_use, usecols=[0,1], unpack=True)
 
