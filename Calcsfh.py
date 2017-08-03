@@ -152,7 +152,7 @@ class DefaultCalcsfh(ProcessRunner):
         self.cmd_file = self.fit + ".cmd"
         
         # caclsfh output file
-        if ">" in command: # in case command doesn't have direction file
+        if "&>" in command: # in case command doesn't have direction file
             self.co_file = command[-1].split("/")[-1]
             print(self.co_file)
         
@@ -195,7 +195,7 @@ class DefaultCalcsfh(ProcessRunner):
         to employ something more complex than the default zcombine command
         """
         # set the current command
-        self.curr_command = "%szcombine -bestonly %s > %s.zc" % (MATCH_EXECUTABLE_BIN, self.cwd + self.fit, self.cwd + self.fit)
+        self.curr_command = "%szcombine -bestonly %s &> %s.zc" % (MATCH_EXECUTABLE_BIN, self.cwd + self.fit, self.cwd + self.fit)
         # set a file name for the new zcombine name
         self.zcombine_name = self.fit + ".zc"
         print(self.zcombine_name)
@@ -302,7 +302,7 @@ class SSPCalcsfh(DefaultCalcsfh):
         
     def sspcombine(self):
         self.co_shortened = self.fit + ".so"
-        self.curr_command = "tail -n +11 %s > %s; %ssspcombine %s > %s.ssp" % (self.cwd + self.co_file, self.cwd + self.co_shortened, MATCH_EXECUTABLE_BIN,
+        self.curr_command = "tail -n +11 %s > %s; %ssspcombine %s &> %s.ssp" % (self.cwd + self.co_file, self.cwd + self.co_shortened, MATCH_EXECUTABLE_BIN,
                                                                              self.cwd + self.co_shortened, self.cwd + self.fit)
         # set a file name for the new zcombine name
         self.sspcombine_name = self.fit + ".ssp"
