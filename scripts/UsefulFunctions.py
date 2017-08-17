@@ -65,30 +65,34 @@ def matchDensities(threshold, fakes, densities):
 
     return data
 
-def getDAv(path, fitName):
+def getDAv(path, fitNames):
     """
     Takes in a path to where a standard best_dAvs.ls file is held and uses the fitName to extract the best dAv and Av.
     Returns these values as a tuple as (dAv, Av) else if the fitname is not found returns none.
     """
     name, dAv, Av = np.genfromtxt(path+"best_dAvs.ls", usecols=[0,1,2], unpack=True, dtype=str)
-    if name.size == 1:
-        name = np.array([name])
-        dAv = np.array([dAv])
-        Av = np.array([Av])
-        
-    if fitName not in name:
-        return None
-    else:
-        idx = np.where(name == fitName)[0][-1]
-        return (dAv[idx], Av[idx])
+    for i, fitName in enumerate(fitNames):
+        if name.size == 1 and i == 0:
+            name = np.array([name])
+            dAv = np.array([dAv])
+            Av = np.array([Av])
+
+        if fitName not in name:
+            continue
+        else:
+            idx = np.where(name == fitName)[0][-1]
+            return (dAv[idx], Av[idx], fitName)
+    return (None, None, None)
+
 def getMass(path, fitNames, massname, skiprows=0):
     """
     Takes in a path to where a standard best_dAvs.ls file is held and uses the fitName to extract mass for the best fit.
     Returns these values as a tuple as (50th, 84th, 16th) else if the fitname is not found returns none. Returns are strings.
     """
     name, mass, plus, minus = np.genfromtxt(path+massname, usecols=[0,1,2,3], unpack=True, dtype=str, skip_header=skiprows)
-    for fitName in fitNames:
-        if name.size == 1:
+    
+    for i, fitName in enumerate(fitNames):
+        if name.size == 1 and i == 0:
             name = np.array([name])
             mass = np.array([mass])
             plus = np.array([plus])
@@ -98,8 +102,8 @@ def getMass(path, fitNames, massname, skiprows=0):
             continue
         else:
             idx = np.where(name == fitName)[0][-1]
-            return (mass[idx], plus[idx], minus[idx])
-    return None
+            return (mass[idx], plus[idx], minus[idx], fitName)
+    return (None, None, None, None)
 
     
 def getShiftedSNRFK5(snr):
@@ -257,7 +261,7 @@ class SFH(object):
 
         if np.isnan(np.min(np.asarray(cumSumFrac))):
             cumSumFrac = np.linspace(0, 0, len(cumSumFrac))
-        print(cumSumFrac)
+        #print(cumSumFrac)
         
         self._x = timePlot /  10**6
         self._y = cumSumFrac

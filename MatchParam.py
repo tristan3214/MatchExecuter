@@ -173,8 +173,11 @@ class MatchParam(object):
         """
         if key in self.parameters.keys():
             if self.parameters[key] is not None:
-                valType = type(self.parameters[key])
-                self.parameters[key] = valType(value)
+                if value is not None:
+                    valType = type(self.parameters[key])
+                    self.parameters[key] = valType(value)
+                else:
+                    self.parameters[key] = value
             else:
                 self.parameters[key] = value
 
@@ -349,11 +352,12 @@ class MatchParam(object):
             f.write("  %.2f  %.2f\n" % (time, end[i]))
 
         # last line
-        f.write("%s %s %s" % (self.parameters["lLine_1"], self.parameters["lLine_2"], str(self.parameters["scale"])))
-        if self.parameters["background"] is not None:
-            f.write("%s\n" % self.parameters["background"])
-        else:
-            f.write("\n")
+        if self.parameters['lLine_1'] is not None and self.parameters['lLine_2'] is not None and self.parameters['scale'] is not None:            
+            f.write("%s %s %s" % (self.parameters["lLine_1"], self.parameters["lLine_2"], str(self.parameters["scale"])))
+            if self.parameters["background"] is not None:
+                f.write("%s\n" % self.parameters["background"])
+            else:
+                f.write("\n")
 
         f.close()
 
