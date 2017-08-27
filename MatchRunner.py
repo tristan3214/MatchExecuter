@@ -246,7 +246,7 @@ def singleRun(args):
         command += " " + flag
 
     # add forwarding to file in command
-    command += " > " + workingD + fitName + ".co"
+    command += " &> " + workingD + fitName + ".co"
 
     # write in logging
     
