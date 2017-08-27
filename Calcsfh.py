@@ -180,6 +180,8 @@ class DefaultCalcsfh(ProcessRunner):
         return forCondor
 
     def processFit(self):
+        print("ORIGINAL COMMAND:", self.original)
+        print(repr(self.cwd), repr(self.parameter), repr(self.phot), repr(self.fake), repr(self.fit), repr(self.co_file), repr(self.zcombine_name), repr(self.cmd_file))
         files = [self.cwd+self.parameter, self.cwd+self.phot, self.cwd+self.fake, self.cwd+self.fit,
                  self.cwd+self.co_file, self.cwd+self.zcombine_name, self.cwd+self.cmd_file]
         if not self.isHybrid: # no -mcdata flag
