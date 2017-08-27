@@ -266,6 +266,41 @@ class SFH(object):
         self._x = timePlot /  10**6
         self._y = cumSumFrac
 
+    def calculateCSF2(self):
+        """
+        This will calculate the cumulative star formation history for the specified number of bins.
+        The plot goes from "100%" down to "0%" with increasing time.
+        """
+        To, Tf, SFR, plusError, minusError = self._extractData()
+
+        To_linear = 10**To
+        Tf_linear = 10**Tf
+        timeStep = Tf_linear - To_linear
+
+        SF = SFR * timeStep
+        SF = SF[:self._bins] # grabs the specified bins to calculate CSF for
+
+        timeStep = timeStep[:self._bins]
+        print(Tf_linear[:self._bins])
+
+        timePlot = np.insert(To_linear[:self._bins], SF.size, (Tf_linear[:self._bins])[-1])
+        SF = np.insert(SF, SF.size, 0)
+        
+        totSF = np.sum(SF)
+        cumSum = np.cumsum(SF[::-1]) # cum sum starting from 50 Myrs
+        print("CumSum:", cumSum, cumSum/totSF)
+        #cumSumFrac = 1 - (cumSum / totSF)
+        cumSumFrac = (cumSum/totSF)[::-1]
+        print(cumSumFrac)
+
+        if np.isnan(np.min(np.asarray(cumSumFrac))):
+            cumSumFrac = np.linspace(0, 0, len(cumSumFrac))
+        #print(cumSumFrac)
+        
+        self._x = timePlot /  10**6
+        self._y = cumSumFrac
+
+        
     def getErrors(self):
         """
         Retrieves the errors of the SFH and returns a list with where the errors should be plotted along with the plus and 
