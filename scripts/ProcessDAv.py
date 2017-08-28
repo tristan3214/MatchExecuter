@@ -242,14 +242,21 @@ class ProcessDAv(object):
         #### Get data of field and photometry file #####
         # field should be from background which we get from reading the parameter file
         param = MatchParam(path+paramFile, None, None)
-        background_path = path + param.parameters['background']
-        background_data = np.loadtxt(background_path, unpack=True)
+        noback = True
+
+        background_data = None
+        if param.parameters['background'] is not None:
+            noback = False
+            background_path = path + param.parameters['background']
+            background_data = np.loadtxt(background_path, unpack=True)
 
         # get photometry data
         photemetry_data = np.loadtxt(path+photFile, unpack=True)
 
         # get the number of columns: 2 - one CMD | 3 - 2 CMDs
-        numCols = len(background_data)
+        numCols = 2 # default
+        if not noback:
+            numCols = len(background_data)
 
         # Blue mag will be the lower filter and red_mag will be the higher filter
         blue_phot_mag = None
@@ -262,45 +269,54 @@ class ProcessDAv(object):
 
         if numCols == 2:
             # Assign field/backgroun data
-            blue_field_mag, red_field_mag = background_data[0], background_data[1]
+            if not noback:
+                blue_field_mag, red_field_mag = background_data[0], background_data[1]
             # Assign photometry data
             blue_phot_mag, red_phot_mag = photemetry_data[0], photemetry_data[1]
             limit_colors, limit_mag = self.magLimitsGreaterFilter(param.parameters[filters[0]+"max"], param.parameters[filters[1]+"max"])
         else: # 2 CMDs which we take the 2nd column as blue and the 3rd column as red
-            blue_field_mag, red_field_mag = background_data[1], background_data[2]
+            if not noback:
+                blue_field_mag, red_field_mag = background_data[1], background_data[2]
             blue_phot_mag, red_phot_mag = photemetry_data[1], photemetry_data[2]
             limit_colors, limit_mag = self.magLimitsGreaterFilter(param.parameters[filters[1]+"max"], param.parameters[filters[2]+"max"])
 
         # Create masks for the field and photemetry data to filter out values of 99.99 or to large of magnitudes
-        field_mask = (blue_field_mag < 30.0) & (red_field_mag < 30.0)
+        if not noback:
+            field_mask = (blue_field_mag < 30.0) & (red_field_mag < 30.0)
         phot_mask = (blue_phot_mag < 30.0) & (red_phot_mag < 30.0)
 
         # Apply mask
-        blue_field_mag, red_field_mag = blue_field_mag[field_mask], red_field_mag[field_mask]
+        if not noback:
+            blue_field_mag, red_field_mag = blue_field_mag[field_mask], red_field_mag[field_mask]
         blue_phot_mag, red_phot_mag = blue_phot_mag[phot_mask], red_phot_mag[phot_mask]
 
         # Plot field data as 2d histogram
-        H, xedges, yedges = np.histogram2d(blue_field_mag-red_field_mag, red_field_mag, bins=[75, 75])
-        color = plt.cm.gray
-        color.set_bad("w")
-        col = ax.pcolormesh(xedges, yedges, np.ma.masked_values(H.T, 0), cmap=color)
-        cbar = plt.colorbar(col)
+        if not noback:
+            H, xedges, yedges = np.histogram2d(blue_field_mag-red_field_mag, red_field_mag, bins=[75, 75])
+            color = plt.cm.gray
+            color.set_bad("w")
+            col = ax.pcolormesh(xedges, yedges, np.ma.masked_values(H.T, 0), cmap=color)
+            cbar = plt.colorbar(col)
 
-        # Plot SNR data as scatter plot
+            plt.xlim([xedges.min(), xedges.max()])
+            plt.ylim([yedges.min(), yedges.max()])
+
+        else:
+            plt.xlim([(blue_phot_mag-red_phot_mag).min(), (blue_phot_mag-red_phot_mag).max()])
+            plt.ylim([red_phot_mag.min(), red_phot_mag.max()])
+
         ax.scatter(blue_phot_mag-red_phot_mag, red_phot_mag, color='r', s=12)
-
+        
         ax.plot(limit_colors, limit_mag, linestyle='--', color='green')
 
         plt.xlabel("F438W - F814W", fontsize=18)
         plt.ylabel("F814W", fontsize=18)
-        plt.xlim([xedges.min(), xedges.max()])
-        plt.ylim([yedges.min(), yedges.max()])
-
+                    
         ax.invert_yaxis()
         plt.gca().tick_params(labelsize=16, which='major')    
         plt.tight_layout()
 
-
+                
         plt.savefig(path+baseName+"_bestDAv")
 
         dAvfile.close()
