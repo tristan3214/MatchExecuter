@@ -254,9 +254,7 @@ class ProcessDAv(object):
         photemetry_data = np.loadtxt(path+photFile, unpack=True)
 
         # get the number of columns: 2 - one CMD | 3 - 2 CMDs
-        numCols = 2 # default
-        if not noback:
-            numCols = len(background_data)
+        numCols = len(photemetry_data)
 
         # Blue mag will be the lower filter and red_mag will be the higher filter
         blue_phot_mag = None
