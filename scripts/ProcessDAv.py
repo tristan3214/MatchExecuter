@@ -309,9 +309,13 @@ class ProcessDAv(object):
         
         ax.plot(limit_colors, limit_mag, linestyle='--', color='green')
 
-        plt.xlabel("F438W - F814W", fontsize=18)
-        plt.ylabel("F814W", fontsize=18)
-                    
+        if numCols == 2:
+            plt.xlabel("%s - %s" % (filters[0], filters[1]), fontsize=18)
+            plt.ylabel(filters[1], fontsize=18)
+        else:
+            plt.xlabel("%s - %s" % (filters[1], filters[2]), fontsize=18)
+            plt.ylabel(filters[2], fontsize=18)
+            
         ax.invert_yaxis()
         plt.gca().tick_params(labelsize=16, which='major')    
         plt.tight_layout()
